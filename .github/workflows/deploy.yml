@@ -37,6 +37,9 @@ jobs:
           docker push $IMAGE_URI
           echo "todo_image = \"$IMAGE_URI\"" > terraform/terraform.tfvars
 
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v2
+
       - name: Deploy com Terraform
         run: |
           cd terraform
