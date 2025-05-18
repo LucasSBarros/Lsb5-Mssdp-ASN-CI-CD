@@ -1,0 +1,40 @@
+name: Deploy ToDo App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Configurar AWS
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Login no ECR
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.eu-central-1.amazonaws.com
+
+      - name: Build e Push da imagem Docker
+        run: |
+          IMAGE_TAG=$(date +%s)
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          IMAGE_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
+          docker build --platform linux/amd64 -t $IMAGE_URI .
+          docker push $IMAGE_URI
+          echo "todo_image = \"$IMAGE_URI\"" > terraform/terraform.tfvars
+
+      - name: Deploy com Terraform
+        run: |
+          cd terraform
+          terraform init
+          terraform apply -auto-approve
