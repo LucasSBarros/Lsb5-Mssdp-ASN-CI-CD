@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+env:
+  AWS_REGION: eu-central-1
+  ECR_REPO: todo-list
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
