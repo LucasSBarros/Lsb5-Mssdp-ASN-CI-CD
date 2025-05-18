@@ -8,6 +8,7 @@ on:
 env:
   AWS_REGION: eu-central-1
   ECR_REPO: todo-list-dp008
+  TF_LOG: INFO
 
 jobs:
   deploy:
@@ -44,4 +45,5 @@ jobs:
         run: |
           cd terraform
           terraform init
-          terraform apply -auto-approve
+          terraform plan -out=tfplan
+          terraform apply -auto-approve tfplan
