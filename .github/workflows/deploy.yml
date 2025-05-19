@@ -30,8 +30,7 @@ jobs:
 
       # 1 ▸ garante que o repositório ECR exista
       - name: Criar repositório ECR com Terraform
-        run: |
-          cd terraform
+        run: cd terraform
           terraform init
           terraform apply \
             -target=aws_ecr_repository.todo_repo \
@@ -40,31 +39,26 @@ jobs:
 
       # 2 ▸ login no ECR
       - name: Login no ECR
-        run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        run: ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           aws ecr get-login-password --region $AWS_REGION \
-            | docker login --username AWS --password-stdin \
+            docker login --username AWS --password-stdin \
               $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
       # 3 ▸ builda e envia a nova imagem
       - name: Build e Push da imagem Docker
-        run: |
-          IMAGE_TAG=$(date +%s)
+        run: IMAGE_TAG=$(date +%s)
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           IMAGE_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$IMAGE_TAG
           docker build --platform linux/amd64 -t $IMAGE_URI .
-          docker push $IMAGE_URI
-          # grava o tfvars completo (com as demais variáveis já conhecidas)
-          cat > terraform/terraform.tfvars <<EOF
-node_role_arn = "$TF_VAR_node_role_arn"
-ssh_key_name  = "$TF_VAR_ssh_key_name"
-todo_image    = "$IMAGE_URI"
-EOF
+          docker push $IMAGE_URI cat > terraform/terraform.tfvars <<EOF
+          node_role_arn = "$TF_VAR_node_role_arn"
+          ssh_key_name  = "$TF_VAR_ssh_key_name"
+          todo_image    = "$IMAGE_URI"
+          EOF
 
       # 4 ▸ aplica toda a pilha (Deployment recebe a nova imagem)
       - name: Deploy completo com Terraform
-        run: |
-          cd terraform
+        run: cd terraform
           terraform init
           terraform plan -out=tfplan
           terraform apply -auto-approve tfplan
