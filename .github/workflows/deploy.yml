@@ -14,6 +14,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout do código
         uses: actions/checkout@v3
@@ -29,8 +30,8 @@ jobs:
         uses: hashicorp/setup-terraform@v2
 
       - name: Criar repositório ECR com Terraform
+        working-directory: terraform
         run: |
-          cd terraform
           terraform init
           terraform apply \
             -target=aws_ecr_repository.todo_repo \
@@ -40,9 +41,9 @@ jobs:
       - name: Login no ECR
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          aws ecr get-login-password --region $AWS_REGION \
-            | docker login --username AWS --password-stdin \
-              $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+          aws ecr get-login-password --region $AWS_REGION | \
+            docker login --username AWS --password-stdin \
+            $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
       - name: Build e Push da imagem Docker
         run: |
@@ -53,15 +54,13 @@ jobs:
           docker build --platform linux/amd64 -t $IMAGE_URI .
           docker push $IMAGE_URI
 
-          cat > terraform/terraform.tfvars <<EOF
-node_role_arn = "$TF_VAR_node_role_arn"
-ssh_key_name  = "$TF_VAR_ssh_key_name"
-todo_image    = "$IMAGE_URI"
-EOF
+          echo "node_role_arn = \"$TF_VAR_node_role_arn\"" > terraform/terraform.tfvars
+          echo "ssh_key_name  = \"$TF_VAR_ssh_key_name\""  >> terraform/terraform.tfvars
+          echo "todo_image    = \"$IMAGE_URI\""            >> terraform/terraform.tfvars
 
       - name: Deploy completo com Terraform
+        working-directory: terraform
         run: |
-          cd terraform
           terraform init
           terraform plan -out=tfplan
           terraform apply -auto-approve tfplan
