@@ -8,7 +8,10 @@ resource "kubernetes_deployment" "todo_app" {
 
   spec {
     replicas = 1
-
+    strategy {
+      type = "Recreate"
+    }
+    
     selector {
       match_labels = {
         app = "todo"
