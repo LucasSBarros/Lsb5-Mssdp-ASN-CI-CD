@@ -46,6 +46,7 @@ jobs:
             $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
       - name: Build e Push da imagem Docker
+        working-directory: .
         run: |
           IMAGE_TAG=$(date +%s)
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
